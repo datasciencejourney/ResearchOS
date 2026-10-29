@@ -5,23 +5,51 @@ Run the API first, then:  streamlit run frontend/app.py
 
 import os
 import time
+import uuid
 
 import httpx
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 DEFAULT_API = os.environ.get("RESEARCHOS_API", "http://127.0.0.1:8000/api/v1")
+COOKIE_NAME = "researchos_client"
 DONE = {"completed", "failed"}
 WAITING = {"awaiting_approval", "created"}
 
 st.set_page_config(page_title="ResearchOS", page_icon="🔎", layout="wide")
 
 
+# ---------- visitor id (kept in a cookie) ----------
+def client_id() -> str:
+    """Random id per browser. It is read from a cookie and sent to the API so
+    each visitor only sees their own sessions."""
+    if "client_id" in st.session_state:
+        return st.session_state["client_id"]
+    cid = None
+    try:
+        cid = st.context.cookies.get(COOKIE_NAME)
+    except Exception:  # older Streamlit without st.context
+        pass
+    if not cid:
+        cid = uuid.uuid4().hex
+        # Streamlit can't set cookies itself, so a tiny script does it in the browser.
+        components.html(
+            "<script>try{window.parent.document.cookie="
+            f"'{COOKIE_NAME}={cid}; max-age=31536000; path=/; SameSite=Lax';"
+            "}catch(e){}</script>",
+            height=0,
+        )
+    st.session_state["client_id"] = cid
+    return cid
+
+
 # ---------- api helpers ----------
 def api(method: str, path: str, **kwargs):
     base = st.session_state.get("api_url", DEFAULT_API).rstrip("/")
     try:
-        resp = httpx.request(method, base + path, timeout=30.0, **kwargs)
+        headers = {"X-Client-Id": client_id()}
+        resp = httpx.request(method, base + path, headers=headers, timeout=60.0, **kwargs)
     except httpx.HTTPError as exc:
         st.error(f"Can't reach the API at {base}. Is it running? ({exc.__class__.__name__})")
         st.stop()
@@ -47,7 +75,7 @@ with st.sidebar:
     st.session_state.setdefault("api_url", DEFAULT_API)
     st.text_input("API address", key="api_url")
 
-    if st.button("➕ New research", use_container_width=True):
+    if st.button("➕ New research", width="stretch"):
         st.session_state.pop("session_id", None)
         st.rerun()
 
@@ -58,7 +86,7 @@ with st.sidebar:
     for s in sessions:
         label = f"{s['question'][:42]}{'…' if len(s['question']) > 42 else ''}"
         icon = {"completed": "✅", "failed": "❌", "awaiting_approval": "⏸️"}.get(s["status"], "⏳")
-        if st.button(f"{icon} {label}", key=f"pick-{s['id']}", use_container_width=True):
+        if st.button(f"{icon} {label}", key=f"pick-{s['id']}", width="stretch"):
             st.session_state["session_id"] = s["id"]
             st.rerun()
 
@@ -230,7 +258,7 @@ def show_session(session_id: str):
                     pd.DataFrame(
                         [{"verdict": r["verdict"], "sentence": r["claim_text"], "notes": r["notes"]} for r in rows]
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
         else:
@@ -243,7 +271,7 @@ def show_session(session_id: str):
                 pd.DataFrame(
                     [{"time": e["created_at"], "node": e["node"], "kind": e["kind"], "message": e["message"]} for e in events]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:

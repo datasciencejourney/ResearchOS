@@ -32,9 +32,17 @@ router = APIRouter()
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+def _client_id(db: Session) -> str | None:
+    return db.info.get("client_id")
+
+
 def _session_or_404(db: Session, session_id: uuid.UUID) -> ResearchSession:
     row = db.get(ResearchSession, session_id)
     if row is None:
+        raise HTTPException(status_code=404, detail="research session not found")
+    # Sessions created with a client id belong to that visitor. Older ones have no owner.
+    owner = (row.config or {}).get("owner")
+    if owner and owner != _client_id(db):
         raise HTTPException(status_code=404, detail="research session not found")
     return row
 
@@ -62,6 +70,8 @@ async def health() -> dict:
 @router.post("/sessions", response_model=schemas.SessionDetail, status_code=201, tags=["sessions"])
 async def create_session(body: schemas.SessionCreate, db: DbSession) -> schemas.SessionDetail:
     config = body.config.model_dump(exclude_none=True)
+    if _client_id(db):
+        config["owner"] = _client_id(db)
     row = ResearchSession(question=body.question.strip(), status=SessionStatus.CREATED, config=config)
     db.add(row)
     db.commit()
@@ -76,8 +86,14 @@ async def list_sessions(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[schemas.SessionSummary]:
+    query = select(ResearchSession)
+    owner_col = ResearchSession.config["owner"].as_string()
+    if _client_id(db):
+        query = query.where(owner_col == _client_id(db))
+    else:
+        query = query.where(owner_col.is_(None))
     rows = db.execute(
-        select(ResearchSession).order_by(ResearchSession.created_at.desc()).limit(limit).offset(offset)
+        query.order_by(ResearchSession.created_at.desc()).limit(limit).offset(offset)
     ).scalars().all()
     return [
         schemas.SessionSummary(
