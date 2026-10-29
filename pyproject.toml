@@ -1,0 +1,16 @@
+[project]
+name = "researchos"
+version = "0.1.0"
+description = "Multi-agent research and intelligence platform: adaptive planning, MCP evidence gathering and claim-level verification."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = ["e2e: live tests that call real models and the network (opt-in)"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"

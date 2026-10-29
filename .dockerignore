@@ -1,0 +1,13 @@
+# Keep secrets, virtualenvs and caches out of the build context/image.
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.git/
+.gitignore
+*.log

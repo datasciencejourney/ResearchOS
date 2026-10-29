@@ -1,0 +1,27 @@
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.venv-ui/
+
+# --- tooling ---------------------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- secrets / local config ------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- local data ------------------------------------------------------------
+*.sqlite3
+*.log

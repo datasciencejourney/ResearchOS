@@ -1,0 +1,35 @@
+# Python dependencies (pinned).
+
+# orchestration
+langgraph==1.2.16
+langgraph-checkpoint==4.3.0
+langgraph-checkpoint-postgres==3.2.0
+
+# LLM (provider-agnostic, OpenAI-compatible endpoints)
+langchain-core==1.6.12
+langchain-openai==1.7.2
+openai==3.35.1
+
+# MCP research toolbelt
+mcp==1.30.0
+langchain-mcp-adapters==0.3.2
+
+# API
+fastapi==0.143.3
+uvicorn==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.0
+
+# storage
+SQLAlchemy==2.1.5
+alembic==1.20.0
+psycopg==3.3.6
+psycopg-pool==3.3.3
+
+# web retrieval / parsing
+httpx==0.28.1
+beautifulsoup4==4.15.0
+
+# tests
+pytest==9.1.1
+pytest-asyncio==1.4.0
